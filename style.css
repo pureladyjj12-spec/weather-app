@@ -1,0 +1,719 @@
+:root {
+  --bg-gradient: linear-gradient(160deg, #0284c7 0%, #2563eb 55%, #38bdf8 100%);
+  --card-bg: rgba(15, 23, 42, 0.28);
+  --card-border: rgba(255, 255, 255, 0.26);
+  --card-hover: rgba(255, 255, 255, 0.22);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --text-muted: rgba(255, 255, 255, 0.68);
+  --accent: #60a5fa;
+  --accent-strong: #3b82f6;
+  --shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+/* 1. 맑은 낮 */
+body.theme-clear-day {
+  --bg-gradient: linear-gradient(165deg, #0284c7 0%, #38bdf8 55%, #bae6fd 100%);
+  --card-bg: rgba(12, 74, 110, 0.28);
+}
+
+/* 2. 맑은 밤 */
+body.theme-clear-night {
+  --bg-gradient: linear-gradient(165deg, #020617 0%, #0f172a 45%, #1e1b4b 80%, #312e81 100%);
+  --card-bg: rgba(15, 23, 42, 0.45);
+}
+
+/* 3. 구름 조금 (낮) */
+body.theme-partly-cloudy-day {
+  --bg-gradient: linear-gradient(165deg, #0369a1 0%, #3b82f6 50%, #94a3b8 100%);
+  --card-bg: rgba(15, 23, 42, 0.3);
+}
+
+/* 4. 구름 조금 (밤) */
+body.theme-partly-cloudy-night {
+  --bg-gradient: linear-gradient(165deg, #090d16 0%, #1e293b 55%, #334155 100%);
+  --card-bg: rgba(15, 23, 42, 0.45);
+}
+
+/* 5. 흐림 */
+body.theme-cloudy {
+  --bg-gradient: linear-gradient(165deg, #334155 0%, #475569 50%, #64748b 100%);
+  --card-bg: rgba(15, 23, 42, 0.34);
+}
+
+/* 6. 안개 */
+body.theme-fog {
+  --bg-gradient: linear-gradient(165deg, #475569 0%, #64748b 50%, #94a3b8 100%);
+  --card-bg: rgba(15, 23, 42, 0.36);
+}
+
+/* 7. 비 / 소나기 */
+body.theme-rain {
+  --bg-gradient: linear-gradient(165deg, #0f172a 0%, #1e293b 45%, #334155 100%);
+  --card-bg: rgba(15, 23, 42, 0.45);
+}
+
+/* 8. 뇌우 (천둥·번개) */
+body.theme-thunder {
+  --bg-gradient: linear-gradient(165deg, #090d16 0%, #1e1b4b 45%, #1e293b 100%);
+  --card-bg: rgba(15, 23, 42, 0.5);
+}
+
+/* 9. 눈 */
+body.theme-snow {
+  --bg-gradient: linear-gradient(165deg, #1e3a8a 0%, #3b82f6 50%, #93c5fd 100%);
+  --card-bg: rgba(15, 23, 42, 0.32);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.8s ease;
+  position: relative;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* 실시간 날씨 동적 실사 배경 컨테이너 */
+.weather-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--bg-gradient);
+}
+
+.bg-photo {
+  position: absolute;
+  inset: -4%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  will-change: transform, opacity;
+  transition: opacity 1s ease-in-out;
+  animation: kenBurnsMotion 22s ease-in-out infinite alternate;
+}
+
+.bg-photo.active {
+  opacity: 1;
+}
+
+@keyframes kenBurnsMotion {
+  0% {
+    transform: scale(1) translate3d(0%, 0%, 0);
+  }
+  50% {
+    transform: scale(1.08) translate3d(-1.5%, -1%, 0);
+  }
+  100% {
+    transform: scale(1.12) translate3d(1.5%, 1%, 0);
+  }
+}
+
+.weather-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 실사 사진 위 텍스트 가독성을 위한 그라데이션 오버레이 */
+.weather-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 15, 30, 0.35) 0%,
+    rgba(10, 15, 30, 0.22) 45%,
+    rgba(10, 15, 30, 0.5) 100%
+  );
+}
+
+.app-container {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px 60px;
+}
+
+/* 헤더 */
+.app-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+/* 첨부 이미지 기반 날씨 아이콘 스프라이트 (5열 x 6행) */
+.weather-icon-sprite {
+  display: inline-block;
+  background-image: url('weather-icons.png');
+  background-repeat: no-repeat;
+  background-size: 500% 600%;
+  background-position: calc(var(--col, 0) * 25%) calc(var(--row, 0) * 20%);
+  flex-shrink: 0;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
+}
+
+.icon-brand {
+  width: 42px;
+  height: 42px;
+}
+
+.icon-hero {
+  width: 84px;
+  height: 84px;
+}
+
+.icon-metric {
+  width: 34px;
+  height: 34px;
+}
+
+.icon-hourly {
+  width: 36px;
+  height: 36px;
+}
+
+.icon-daily {
+  width: 32px;
+  height: 32px;
+}
+
+.app-header h1 {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* 검색 영역 */
+.search-section {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: 8px 10px 8px 18px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.search-box:focus-within {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.search-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+#city-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-family: inherit;
+  min-width: 0;
+}
+
+#city-input::placeholder {
+  color: var(--text-muted);
+}
+
+.geo-btn {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.geo-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.geo-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.search-btn {
+  background: #ffffff;
+  color: #1e3a8a;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.search-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.search-btn:active {
+  transform: translateY(0);
+}
+
+/* 빠른 선택 칩 */
+.quick-cities {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+
+.quick-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-right: 4px;
+}
+
+.city-chip {
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--text-primary);
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.city-chip:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+/* 검색 결과 드롭다운 */
+.search-results {
+  list-style: none;
+  margin-top: 10px;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.search-result-item {
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.15s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.result-main {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.result-sub {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+/* 상태 박스 */
+.status-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.status-box.error {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 카드 공통 */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+  margin-bottom: 22px;
+}
+
+/* 현재 날씨 카드 */
+.current-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.location-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.location-badge svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.location-badge h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.location-sub {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 4px;
+  padding-left: 32px;
+}
+
+.time-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.current-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 18px 0 28px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.temp-group {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.weather-emoji {
+  font-size: 4.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.18));
+}
+
+.temp-display {
+  display: flex;
+  align-items: flex-start;
+}
+
+.temp-value {
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.temp-unit {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-top: 6px;
+  margin-left: 2px;
+}
+
+.weather-desc-group {
+  text-align: right;
+}
+
+.weather-description {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.feels-like,
+.high-low-temp {
+  color: var(--text-secondary);
+  font-size: 0.96rem;
+}
+
+/* 상세 지표 그리드 */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.metric-item {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-icon {
+  font-size: 1.65rem;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.metric-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* 시간별 예보 */
+.card-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.hourly-list {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+.hourly-list::-webkit-scrollbar {
+  height: 6px;
+}
+
+.hourly-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+.hourly-item {
+  min-width: 78px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.hourly-time {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.hourly-icon {
+  font-size: 1.6rem;
+}
+
+.hourly-temp {
+  font-weight: 700;
+  font-size: 0.98rem;
+}
+
+.hourly-pop {
+  font-size: 0.75rem;
+  color: #93c5fd;
+  min-height: 1.1em;
+}
+
+/* 주간 예보 */
+.daily-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daily-item {
+  display: grid;
+  grid-template-columns: 1.2fr 1.4fr 1fr;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 18px;
+}
+
+.daily-day {
+  font-weight: 600;
+  font-size: 0.96rem;
+}
+
+.daily-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.92rem;
+}
+
+.daily-pop {
+  font-size: 0.78rem;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.25);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.daily-temps {
+  text-align: right;
+  font-weight: 600;
+}
+
+.daily-min {
+  color: var(--text-secondary);
+  margin-right: 6px;
+}
+
+.daily-max {
+  color: #ffffff;
+}
+
+/* 푸터 */
+.app-footer {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.app-footer a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* 반응형 */
+@media (max-width: 680px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .weather-desc-group {
+    text-align: left;
+    width: 100%;
+  }
+
+  .daily-item {
+    grid-template-columns: 1fr 1.3fr 1fr;
+    padding: 11px 12px;
+  }
+}
+
+@media (max-width: 460px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .temp-value {
+    font-size: 3.6rem;
+  }
+}
+
